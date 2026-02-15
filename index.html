@@ -243,9 +243,10 @@
 
     <script>
     // CONFIG: Данные репозитория
+    // CONFIG: Данные репозитория
     const CONFIG = {
         owner: 'rubymarket', 
-        repo: 'rubymarket.portal', 
+        repo: 'rubymarket.github.io', 
         branch: 'main'
     };
 
@@ -292,7 +293,7 @@
         }
     }
 
-   async function openCourse(path, name) {
+    async function openCourse(path, name) {
         if (window.innerWidth <= 768) toggleSidebar();
         document.getElementById('welcome-screen').style.display = 'none';
         document.getElementById('course-view').style.display = 'block';
@@ -317,13 +318,12 @@
         for (const [index, mod] of modules.entries()) {
             const allModFiles = repoTree.filter(f => f.path.startsWith(mod.path + '/'));
             
-            // --- УМНЫЙ ПОИСК СТАРТОВОГО ФАЙЛА (ИСПРАВЛЕНО) ---
-            // 1. Сначала ищем классический index.html
+            // 1. Сначала ищем классический index.html (стартовая точка большинства курсов)
             let htmlFile = allModFiles.find(f => 
                 f.path.toLowerCase().endsWith('index.html')
             );
 
-            // 2. Если index.html нет, ищем любой html, но ИСКЛЮЧАЕМ "прощальные" страницы
+            // 2. Если index.html нет, ищем любой html, но ИСКЛЮЧАЕМ технические страницы "завершения"
             if (!htmlFile) {
                 htmlFile = allModFiles.find(f => 
                     f.path.toLowerCase().endsWith('.html') && 
@@ -350,7 +350,7 @@
             const parsed = parseInfo(infoText, mod.path.split('/').pop());
             const finalUrl = htmlFile ? `${baseUrl}/${htmlFile.path}` : null;
             
-            if (finalUrl) console.log(`Курс: ${name} | Стартовый файл: ${htmlFile.path}`);
+            if (finalUrl) console.log(`Запуск: ${finalUrl}`);
 
             const card = document.createElement('div');
             card.className = 'pres-card';
@@ -363,59 +363,8 @@
                     <h3 style="margin:0 0 5px 0">${parsed.title}</h3>
                     <p style="margin:0; font-size:0.85rem; color:var(--text-body)">${parsed.desc}</p>
                 </div>
-                <button class="start-btn" onclick="${finalUrl ? `window.open('${finalUrl}', '_blank')` : "alert('Стартовый HTML не найден')" }">
+                <button class="start-btn" onclick="${finalUrl ? `window.open('${finalUrl}', '_blank')` : "alert('Стартовый файл не найден')" }">
                     ${finalUrl ? 'Запустить' : 'Нет файлов'}
-                </button>
-            `;
-            container.appendChild(card);
-        }
-    }
-        // --- ИСПРАВЛЕНИЕ БАЗОВОГО URL ДЛЯ RUBYMARKET.GITHUB.IO ---
-        const isPrimaryRepo = CONFIG.repo.toLowerCase() === `${CONFIG.owner}.github.io`.toLowerCase();
-        const baseUrl = isPrimaryRepo 
-            ? `https://${CONFIG.owner}.github.io` 
-            : `https://${CONFIG.owner}.github.io/${CONFIG.repo}`;
-
-        for (const [index, mod] of modules.entries()) {
-            const allModFiles = repoTree.filter(f => f.path.startsWith(mod.path + '/'));
-            
-            const htmlFile = allModFiles.find(f => 
-                f.path.toLowerCase().endsWith('.html') && 
-                f.type === 'blob' &&
-                !f.path.includes('google-analytics')
-            );
-
-            const infoFile = allModFiles.find(f => f.path.toLowerCase().endsWith('info.txt'));
-
-            let infoText = "";
-            if (infoFile) {
-                const rawUrl = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${infoFile.path}`;
-                try {
-                    const r = await fetch(rawUrl);
-                    if (r.ok) infoText = await r.text();
-                } catch (e) {}
-            }
-
-            const parsed = parseInfo(infoText, mod.path.split('/').pop());
-            
-            // --- ГЕНЕРАЦИЯ ПРЯМОЙ ССЫЛКИ БЕЗ ОШИБКИ 404 ---
-            const finalUrl = htmlFile ? `${baseUrl}/${htmlFile.path}` : null;
-            
-            if (finalUrl) console.log(`Курс: ${name} | Файл: ${htmlFile.path}`);
-
-            const card = document.createElement('div');
-            card.className = 'pres-card';
-            card.style.animation = `containerFade 0.6s ease forwards ${index * 0.1}s`;
-            card.style.opacity = "1";
-            
-            card.innerHTML = `
-                <div class="pres-img-box">${parsed.icon}</div>
-                <div>
-                    <h3 style="margin:0 0 5px 0">${parsed.title}</h3>
-                    <p style="margin:0; font-size:0.85rem; color:var(--text-body)">${parsed.desc}</p>
-                </div>
-                <button class="start-btn" onclick="${finalUrl ? `window.open('${finalUrl}', '_blank')` : "alert('HTML не найден')" }">
-                    ${finalUrl ? 'Запустить' : 'Нет HTML'}
                 </button>
             `;
             container.appendChild(card);
@@ -424,7 +373,7 @@
 
     function parseInfo(text, folderName) {
         const result = { title: folderName, desc: 'Интерактивный модуль', icon: '📁' };
-        if (!text || text.trim() === "") return result; // Защита от пустого info.txt
+        if (!text || text.trim() === "") return result;
         const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
         if (lines.length >= 1) result.title = lines[0];
         if (lines.length >= 2) result.desc = lines[1];
@@ -441,5 +390,6 @@
     </script>
 </body>
 </html>
+
 
 
