@@ -292,7 +292,7 @@
         }
     }
 
-    async function openCourse(path, name) {
+   async function openCourse(path, name) {
         if (window.innerWidth <= 768) toggleSidebar();
         document.getElementById('welcome-screen').style.display = 'none';
         document.getElementById('course-view').style.display = 'block';
@@ -309,6 +309,67 @@
 
         container.innerHTML = '';
 
+        const isPrimaryRepo = CONFIG.repo.toLowerCase() === `${CONFIG.owner}.github.io`.toLowerCase();
+        const baseUrl = isPrimaryRepo 
+            ? `https://${CONFIG.owner}.github.io` 
+            : `https://${CONFIG.owner}.github.io/${CONFIG.repo}`;
+
+        for (const [index, mod] of modules.entries()) {
+            const allModFiles = repoTree.filter(f => f.path.startsWith(mod.path + '/'));
+            
+            // --- УМНЫЙ ПОИСК СТАРТОВОГО ФАЙЛА (ИСПРАВЛЕНО) ---
+            // 1. Сначала ищем классический index.html
+            let htmlFile = allModFiles.find(f => 
+                f.path.toLowerCase().endsWith('index.html')
+            );
+
+            // 2. Если index.html нет, ищем любой html, но ИСКЛЮЧАЕМ "прощальные" страницы
+            if (!htmlFile) {
+                htmlFile = allModFiles.find(f => 
+                    f.path.toLowerCase().endsWith('.html') && 
+                    f.type === 'blob' &&
+                    !f.path.toLowerCase().includes('goodbye') &&
+                    !f.path.toLowerCase().includes('finish') &&
+                    !f.path.toLowerCase().includes('close') &&
+                    !f.path.toLowerCase().includes('end') &&
+                    !f.path.includes('google-analytics')
+                );
+            }
+
+            const infoFile = allModFiles.find(f => f.path.toLowerCase().endsWith('info.txt'));
+
+            let infoText = "";
+            if (infoFile) {
+                const rawUrl = `https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/${CONFIG.branch}/${infoFile.path}`;
+                try {
+                    const r = await fetch(rawUrl);
+                    if (r.ok) infoText = await r.text();
+                } catch (e) {}
+            }
+
+            const parsed = parseInfo(infoText, mod.path.split('/').pop());
+            const finalUrl = htmlFile ? `${baseUrl}/${htmlFile.path}` : null;
+            
+            if (finalUrl) console.log(`Курс: ${name} | Стартовый файл: ${htmlFile.path}`);
+
+            const card = document.createElement('div');
+            card.className = 'pres-card';
+            card.style.animation = `containerFade 0.6s ease forwards ${index * 0.1}s`;
+            card.style.opacity = "1";
+            
+            card.innerHTML = `
+                <div class="pres-img-box">${parsed.icon}</div>
+                <div>
+                    <h3 style="margin:0 0 5px 0">${parsed.title}</h3>
+                    <p style="margin:0; font-size:0.85rem; color:var(--text-body)">${parsed.desc}</p>
+                </div>
+                <button class="start-btn" onclick="${finalUrl ? `window.open('${finalUrl}', '_blank')` : "alert('Стартовый HTML не найден')" }">
+                    ${finalUrl ? 'Запустить' : 'Нет файлов'}
+                </button>
+            `;
+            container.appendChild(card);
+        }
+    }
         // --- ИСПРАВЛЕНИЕ БАЗОВОГО URL ДЛЯ RUBYMARKET.GITHUB.IO ---
         const isPrimaryRepo = CONFIG.repo.toLowerCase() === `${CONFIG.owner}.github.io`.toLowerCase();
         const baseUrl = isPrimaryRepo 
@@ -380,4 +441,5 @@
     </script>
 </body>
 </html>
+
 
